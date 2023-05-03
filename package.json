@@ -5,12 +5,19 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "export": "next build && next export",
+    "start": "next build && next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "13.3.4",
+    "axios": "^1.4.0",
+    "bootstrap": "^5.2.3",
+    "bootstrap-icons": "^1.10.5",
+    "chalk": "^5.2.0",
+    "next": "^13.3.4",
+    "node-fetch": "^3.3.1",
     "react": "18.2.0",
+    "react-bootstrap": "^2.5.0-beta.1",
     "react-dom": "18.2.0"
   }
 }
