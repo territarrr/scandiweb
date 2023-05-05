@@ -1,78 +1,90 @@
 html {
-  padding: 20px 40px;
-  height: 100%;
+    padding: 20px 40px;
+    height: 100%;
 }
 
 body {
-  height: 100%;
+    height: 100%;
 }
 
-#root{
-  width: 100%;
-  height: 100%;
-}
-
-#root {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+#__next {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 header h1 {
-  display: contents;
-  float: left;
+    display: contents;
+    float: left;
 }
+
 header .action-buttons {
-  text-align: right;
+    text-align: right;
 }
 
 .action-buttons {
-  position: absolute;
-  right: 40px;
-  top: 20px;
+    position: absolute;
+    right: 40px;
+    top: 20px;
 }
 
-.action-buttons button:first-child {
-  margin-right: 10px;
+.action-buttons > *:first-child {
+    margin-right: 10px;
 }
 
 main {
-  flex: 1;
+    flex: 1;
 }
 
 .thick {
-  border: 2px solid #3d3939;
-  border-radius: 5px;
-  opacity: 1;
+    border: 2px solid #3d3939;
+    border-radius: 5px;
+    opacity: 1;
 }
 
 footer > p {
-  text-align: center;
+    text-align: center;
 }
+
+#no_products {
+    font-size: 25px;
+    font-family: inherit;
+}
+
 .card {
-  border: 2px solid #252020;
-  padding: 15px;
+    border: 2px solid #252020;
+    padding: 15px;
 }
+
 .card-body {
-  margin-left: 20px;
-  padding: 0;
+    margin-left: 20px;
+    padding: 0;
 }
 
 .card .form-check-input {
-  float: left;
-  margin: 0;
-  border: 1px solid #252020;
+    float: left;
+    margin: 0;
+    border: 1px solid #252020;
 }
 
 .card-body p {
-  text-align: center;
-  font-weight: 500;
+    text-align: center;
+    font-weight: 500;
 }
+
 .product-row {
-  margin-bottom: 24px;
+    margin-bottom: 24px;
 }
 
 .products-list {
-  margin: 20px 0;
+    margin: 20px 0;
+}
+
+.form-group label {
+    text-transform: capitalize;
+}
+
+.type-div p{
+    font-weight: 500;
 }

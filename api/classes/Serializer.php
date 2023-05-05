@@ -39,6 +39,7 @@ class Serializer
         $reflection = new ReflectionClass($className);
         $properties = $reflection->getDefaultProperties();
         $result = array();
+
         foreach ($properties as $key => $value) {
             $result[$key] = $reflection->getProperty($key)->getValue($data);
         }

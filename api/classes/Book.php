@@ -9,9 +9,4 @@ class Book extends Product
         parent::__construct($sku, $name, $price);
         $this->weight = $weight;
     }
-
-    public function getWeight()
-    {
-        return $this->weight;
-    }
 }

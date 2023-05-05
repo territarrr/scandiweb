@@ -1,5 +1,6 @@
 <?php
 require_once "./classes/DB.php";
+
 $classes = get_declared_classes();
 $result = [];
 

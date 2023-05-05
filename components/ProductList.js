@@ -51,11 +51,15 @@ function ProductList() {
             <main>
                 <div className="container">
                     <div className="products-list">
-                        {rows.map((row, index) => (
-                            <div key={index} className="row product-row">
-                                {row}
-                            </div>
-                        ))}
+                        {rows.length === 0 ? (
+                            <p id="no_products">No products found</p>
+                        ) : (
+                            rows.map((row, index) => (
+                                <div key={index} className="row product-row">
+                                    {row}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </main>
