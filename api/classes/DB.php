@@ -3,6 +3,7 @@ include_once "Product.php";
 include_once "Book.php";
 include_once "DVD.php";
 include_once "Furniture.php";
+include_once "Serializer.php";
 
 class DB
 {
@@ -15,7 +16,7 @@ class DB
 
     private function __construct()
     {
-        $envFile = $_SERVER['DOCUMENT_ROOT'].'/.env';
+        $envFile = $_SERVER['DOCUMENT_ROOT'] . '/.env';
         if (file_exists($envFile)) {
             $envVars = parse_ini_file($envFile);
             foreach ($envVars as $key => $value) {
@@ -61,7 +62,12 @@ class DB
         while ($product = $result->fetch_assoc()) {
             array_push($products, Serializer::deserialize($product));
         }
-        return $products;
+
+        $products = array_map(function ($product) {
+            return Serializer::serialize($product);
+        }, $products);
+
+        return json_encode($products);
     }
 
     public function getProductBySKU($sku)
@@ -105,60 +111,87 @@ class DB
             $this->conn->autocommit(true);
             throw new Exception('Transaction error: ' . $e->getMessage());
         }
+    }
 
+    public function deleteProductsBySKUArray($skus)
+    {
+        $result = [];
+        foreach ($skus as $sku) {
+            $result[] = $this->deleteProductBySKU($sku);
+        }
+
+        return json_encode($result);
     }
 
     public function addProducts($product)
     {
         try {
-            $this->conn->begin_transaction();
+            $result = [];
 
-            $productColumns = array_map(function ($value) use ($product) {
-                if (in_array($value['Field'], array_keys($product))) {
-                    return $value['Field'];
-                }
-            }, array_values($this->getColumns('Product')));
+            if (count(array_filter($product)) !== count($product)) {
+                $result['error'] = 'fields_required';
+            } else {
+                $productManager = DB::getInstance();
+                $productObject = Serializer::deserialize($product);
 
-            $productColumns = array_filter($productColumns);
-
-            $productValues = array_intersect_key($product, array_flip($productColumns));
-            $productValueStr = "'" . implode("', '", array_values($productValues)) . "'";
-            $productColumnStr = implode(", ", $productColumns);
-
-            $stmt = $this->conn->prepare("INSERT INTO Product ($productColumnStr) VALUES ($productValueStr)");
-            if($stmt->execute()) {
-                $productId = $this->conn->insert_id;
-
-                $typeColumns = array_map(function ($value) use ($product) {
-                    if (in_array($value['Field'], array_keys($product))) {
-                        return $value['Field'];
+                if (is_a($productObject, 'Product')) {
+                    if (!is_null($productManager->getProductBySKU($productObject->getSku()))) {
+                        $result['error'] = 'already_exists';
                     }
-                }, array_values($this->getColumns($product["type"])));
 
-                $typeColumns = array_filter($typeColumns);
-                array_unshift($typeColumns, "id");
+                    if (!isset($result['error'])) {
+                        $this->conn->begin_transaction();
 
-                $typeValues = array_intersect_key($product, array_flip($typeColumns));
-                array_unshift($typeValues, $productId);
-                $typeValueStr = "'" . implode("', '", array_values($typeValues)) . "'";
-                $typeColumnStr = implode(", ", $typeColumns);
+                        $productColumns = array_map(function ($value) use ($product) {
+                            if (in_array($value['Field'], array_keys($product))) {
+                                return $value['Field'];
+                            }
+                        }, array_values($this->getColumnsInfoByTableName('Product')));
 
-                $stmt = $this->conn->prepare("INSERT INTO " . $product["type"] . " ($typeColumnStr) VALUES ($typeValueStr)");
-                $stmt->execute();
+                        $productColumns = array_filter($productColumns);
 
-                $this->conn->commit();
-                return true;
+                        $productValues = array_intersect_key($product, array_flip($productColumns));
+                        $productValueStr = "'" . implode("', '", array_values($productValues)) . "'";
+                        $productColumnStr = implode(", ", $productColumns);
+
+                        $stmt = $this->conn->prepare("INSERT INTO Product ($productColumnStr) VALUES ($productValueStr)");
+                        if ($stmt->execute()) {
+                            $productId = $this->conn->insert_id;
+
+                            $typeColumns = array_map(function ($value) use ($product) {
+                                if (in_array($value['Field'], array_keys($product))) {
+                                    return $value['Field'];
+                                }
+                            }, array_values($this->getColumnsInfoByTableName($product["type"])));
+
+                            $typeColumns = array_filter($typeColumns);
+                            array_unshift($typeColumns, "id");
+
+                            $typeValues = array_intersect_key($product, array_flip($typeColumns));
+                            array_unshift($typeValues, $productId);
+                            $typeValueStr = "'" . implode("', '", array_values($typeValues)) . "'";
+                            $typeColumnStr = implode(", ", $typeColumns);
+
+                            $stmt = $this->conn->prepare("INSERT INTO " . $product["type"] . " ($typeColumnStr) VALUES ($typeValueStr)");
+                            $stmt->execute();
+
+                            $this->conn->commit();
+                        }
+                    }
+                } else {
+                    $result = $productObject;
+                }
             }
-            return false;
         } catch (Exception $e) {
             $this->conn->rollback();
             $this->conn->autocommit(true);
-            throw new Exception($e->getMessage());
+            $result['error'] = $e->getMessage();
         }
 
+        echo json_encode($result);
     }
 
-    public function getColumns($tableName)
+    public function getColumnsInfoByTableName($tableName)
     {
         $stmt = $this->conn->prepare("SHOW COLUMNS FROM $tableName");
 
@@ -169,7 +202,42 @@ class DB
         while ($column = $result->fetch_assoc()) {
             array_push($columns, $column);
         }
+
         return $columns;
+    }
+
+    public function getColumnsNameByTableName($tableName)
+    {
+        $stmt = $this->conn->prepare("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$tableName' ORDER BY ORDINAL_POSITION");
+        $stmt->execute();
+        $tables = $stmt->get_result();
+
+        while ($row = $tables->fetch_assoc()) {
+            if ($row['COLUMN_NAME'] != 'id') {
+                $result[] = $row['COLUMN_NAME'];
+            }
+        }
+
+        return $result;
+    }
+
+    public function getAllPropertiesGroupedByType()
+    {
+        $stmt = $this->conn->prepare("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_NAME = 'Product' OR TABLE_NAME = 'Product'");
+        $stmt->execute();
+        $tables = $stmt->get_result();
+
+        $tableNames = array();
+        while ($row = $tables->fetch_assoc()) {
+            $tableNames[] = $row['TABLE_NAME'];
+        }
+
+        $result = [];
+        foreach ($tableNames as $table) {
+            $result[0][$table] = $this->getColumnsNameByTableName($table);
+        }
+
+        return json_encode($result);
     }
 }
 

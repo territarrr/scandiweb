@@ -24,7 +24,7 @@ function ProductList() {
 
         if(skus.length>0) {
             axios
-                .post('/api/delete_products', {skus}, {
+                .post('/api/delete_products', skus, {
                     headers: {
                         'Content-Type': 'application/json'
                     }

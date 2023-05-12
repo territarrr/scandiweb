@@ -16,7 +16,7 @@ class Serializer
     public static function deserialize($data)
     {
         $productManager = DB::getInstance();
-        $tableFields = array_merge($productManager->getColumns("Product"), $productManager->getColumns($data["type"]));
+        $tableFields = array_merge($productManager->getColumnsInfoByTableName("Product"), $productManager->getColumnsInfoByTableName($data["type"]));
 
         $validEnumValues = ['DVD', 'Book', 'Furniture'];
         $result['error'] = [];
@@ -26,21 +26,21 @@ class Serializer
             }
             $value = $data[$field["Field"]];
             if ($field["Type"] == 'int' && !is_numeric($value)) {
-                $result['error'] = 'invalid_data';
+                $result['error'][] = 'invalid_data';
                 break;
             } elseif ($field["Type"] == 'varchar(255)' && strlen($value) > 255) {
-                $result['error'] = 'invalid_data';
+                $result['error'][] = 'invalid_data';
                 break;
             } elseif ($field["Type"] == 'decimal(10,2)' && !is_numeric($value)) {
-                $result['error'] = 'invalid_data';
+                $result['error'][] = 'invalid_data';
                 break;
             } elseif ($field["Type"] == "enum('DVD','Book','Furniture')" && !in_array($value, $validEnumValues)) {
-                $result['error'] = 'invalid_data';
+                $result['error'][] = 'invalid_data';
                 break;
             }
         }
-        if(count($result['error']) == 0) {
 
+        if(count($result['error']) == 0) {
             $productType = $data['type'] ?? null;
             if (!isset(self::$productTypes[$productType])) {
                 return null;
